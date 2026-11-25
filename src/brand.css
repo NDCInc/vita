@@ -1,0 +1,281 @@
+/* The NDC site ships these palette values, Inter files and control styles. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./assets/ndc-inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./assets/ndc-inter-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  ascent-override: 90.49%;
+  descent-override: 22.56%;
+  line-gap-override: 0%;
+  size-adjust: 107.06%;
+}
+
+:root {
+  --paper: #fff;
+  --white: #fff;
+  --pine: #15392b;
+  --ink: #17211c;
+  --action: #00843d;
+  --green: #006b31;
+  --pressed: #005226;
+  --muted: #546259;
+  --line: #d6ddd6;
+  --mint: #eaf0eb;
+  --surface: #f7f8f5;
+  --control: #66756b;
+  --error: #b42318;
+  --ndc-font: "Inter Variable", "Inter", "Inter Fallback", Arial, sans-serif;
+  font-family: var(--ndc-font);
+  line-height: 1.55;
+  font-feature-settings: "ss01","cv11","cv02";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--white);
+  font-size: 1.0625rem;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  letter-spacing: -.02em;
+  overflow-wrap: anywhere;
+}
+
+h2 { font-size: clamp(1.75rem, 2.6vw, 2rem); }
+h3 { font-size: 1.25rem; }
+
+:focus-visible {
+  outline: 3px solid var(--pine);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--white);
+}
+
+.site-head {
+  background: var(--white);
+  border-color: var(--line);
+}
+
+.skip {
+  z-index: 11;
+}
+
+.site-head-inner {
+  width: 100%;
+  max-width: 86rem;
+  min-height: 5.5rem;
+  padding-inline: 3rem;
+  gap: 1.75rem;
+}
+
+.site-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem 1rem;
+  min-width: 0;
+}
+
+.ndc-brand {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-height: 2.75rem;
+  max-width: 100%;
+}
+
+.ndc-brand img {
+  display: block;
+  width: 184px;
+  max-width: 100%;
+  height: auto;
+}
+
+.wordmark {
+  min-height: 2.75rem;
+  padding-inline: .875rem .125rem;
+  border-inline-start: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+
+.privacy {
+  white-space: normal;
+  font-size: .875rem;
+  line-height: 1.45;
+}
+
+.shell, .site-foot {
+  width: min(100% - 6rem, 80rem);
+}
+
+.intro h1 {
+  width: min(100%, 43rem);
+  padding: 2rem;
+  font-size: clamp(2.25rem, 4.3vw, 3.5rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--white);
+  background: var(--action);
+  overflow-wrap: anywhere;
+}
+
+.intro p {
+  margin-top: 2rem;
+  max-width: 45ch;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.choice, .surface, .entry, .pdf-page { border-radius: .25rem; }
+.dropzone { border-radius: .125rem; }
+
+.import-choice {
+  background: var(--white);
+}
+
+.fresh-choice {
+  background: var(--pine);
+  border-color: var(--pine);
+  color: var(--white);
+}
+
+.fresh-choice h2,
+.fresh-choice p {
+  color: var(--white);
+}
+
+.fresh-choice button.primary {
+  border-color: var(--white);
+}
+
+.fresh-choice :focus-visible {
+  outline-color: var(--white);
+}
+
+.dropzone,
+.entry {
+  background: var(--surface);
+}
+
+.dropzone:hover,
+.dropzone.is-dragging,
+.import-review {
+  background: var(--mint);
+}
+
+button.primary,
+button.secondary {
+  min-height: 3rem;
+  padding: .625rem 1.5rem;
+  border: 2px solid transparent;
+  border-radius: .125rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  letter-spacing: -.025em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+button.primary {
+  color: var(--white);
+  background: var(--action);
+}
+
+button.primary:not(:disabled):hover {
+  background: var(--green);
+}
+
+button.primary:not(:disabled):active {
+  background: var(--pressed);
+}
+
+button.secondary {
+  color: var(--green);
+  background: var(--white);
+  border-color: currentColor;
+}
+
+button.secondary:not(:disabled):hover {
+  background: var(--mint);
+}
+
+.move-actions button {
+  min-height: 2.75rem;
+  padding: .35rem .6rem;
+  font-size: .875rem;
+}
+
+.text-button, .file-link, .surface a, .linkedin a, .site-foot a {
+  color: var(--green);
+  text-underline-offset: .25rem;
+  font-weight: 600;
+}
+
+input:not([type=file]):not([type=checkbox]),
+select,
+textarea {
+  border-color: var(--control);
+  border-width: 2px;
+  border-radius: .125rem;
+}
+
+.status[data-kind=error],
+#linkedin-error {
+  color: var(--error);
+  background-color: var(--white);
+}
+
+.source-text {
+  border-color: var(--line);
+  font-family: var(--ndc-font);
+}
+
+@media (max-width: 64rem) {
+  .shell, .site-foot { width: calc(100% - 4rem); }
+  .site-head-inner { padding-inline: 2rem; }
+}
+
+@media (max-width: 48rem) {
+  .shell, .site-foot { width: calc(100% - 2.5rem); }
+  .site-head-inner {
+    flex-wrap: wrap;
+    row-gap: .25rem;
+    min-height: 5rem;
+    padding: .5rem 1.25rem;
+  }
+  .ndc-brand img { width: 160px; }
+  .intro h1 {
+    padding: 1.5rem;
+    font-size: clamp(2.25rem, 7.8vw, 3rem);
+  }
+  .intro p { margin-top: 1.5rem; }
+}
+
+@media (forced-colors: active) {
+  .intro h1, .fresh-choice { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+  .fresh-choice h2, .fresh-choice p { color: CanvasText; }
+  button.primary, button.secondary { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+  :focus-visible { outline-color: Highlight; box-shadow: none; }
+}

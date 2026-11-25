@@ -1,0 +1,430 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Vita with a private Canadian S3 origin, CloudFront and optional dictation.
+Parameters:
+  Hostname:
+    Type: String
+    Default: vita.nestdigital.ca
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: Issued ACM certificate in us-east-1. Leave blank for staging.
+  VoiceCodeKey:
+    Type: String
+    Default: ''
+    Description: Dictation deployment archive in the private research bucket.
+  VoiceCodeVersion:
+    Type: String
+    Default: ''
+    Description: Version ID of the dictation deployment archive.
+  VoiceMonthlySeconds:
+    Type: Number
+    Default: 18000
+    MinValue: 60
+    MaxValue: 180000
+  VoiceLiveProvider:
+    Type: String
+    Default: ''
+    Description: OpenAI workload identity provider ID for live dictation.
+  VoiceLiveAccount:
+    Type: String
+    Default: ''
+    Description: Project service account ID mapped to the exact Vita Lambda role.
+  VoiceLiveMonthlySeconds:
+    Type: Number
+    Default: 60000
+    MinValue: 145
+    MaxValue: 600000
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
+  HasVoice: !And
+    - !Not [!Equals [!Ref VoiceCodeKey, '']]
+    - !Not [!Equals [!Ref VoiceCodeVersion, '']]
+  HasLiveVoice: !And
+    - !Condition HasVoice
+    - !Not [!Equals [!Ref VoiceLiveProvider, '']]
+    - !Not [!Equals [!Ref VoiceLiveAccount, '']]
+Resources:
+  Site:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: PreviousReleases
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 180
+      Tags:
+        - Key: Project
+          Value: Vita
+  Research:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Project
+          Value: Vita-Research
+  ResearchHTTPS:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Research
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: RequireHTTPS
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt Research.Arn
+              - !Sub '${Research.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+  OriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-s3
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  VoiceUsage:
+    Type: AWS::DynamoDB::Table
+    Condition: HasVoice
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: period
+          AttributeType: S
+      KeySchema:
+        - AttributeName: period
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: Vita
+  VoiceLogs:
+    Type: AWS::Logs::LogGroup
+    Condition: HasVoice
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-dictation
+      RetentionInDays: 14
+  VoiceExpiryDeadLetters:
+    Type: AWS::SQS::Queue
+    Condition: HasLiveVoice
+    Properties:
+      MessageRetentionPeriod: 604800
+      SqsManagedSseEnabled: true
+  VoiceExpiry:
+    Type: AWS::SQS::Queue
+    Condition: HasLiveVoice
+    Properties:
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 86400
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VoiceExpiryDeadLetters.Arn
+        maxReceiveCount: 3
+  VoiceRole:
+    Type: AWS::IAM::Role
+    Condition: HasVoice
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: Dictation
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: transcribe:TranscribeAudio
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    aws:RequestedRegion: !Ref AWS::Region
+              - Effect: Allow
+                Action: dynamodb:UpdateItem
+                Resource: !GetAtt VoiceUsage.Arn
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !GetAtt VoiceLogs.Arn
+              - !If
+                - HasLiveVoice
+                - Effect: Allow
+                  Action: sts:GetWebIdentityToken
+                  Resource: '*'
+                  Condition:
+                    ForAllValues:StringEquals:
+                      sts:IdentityTokenAudience: https://api.openai.com/v1
+                    'Null':
+                      sts:IdentityTokenAudience: 'false'
+                    NumericLessThanEquals:
+                      sts:DurationSeconds: 60
+                - !Ref AWS::NoValue
+              - !If
+                - HasLiveVoice
+                - Effect: Allow
+                  Action: [sqs:SendMessage, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                  Resource: !GetAtt VoiceExpiry.Arn
+                - !Ref AWS::NoValue
+  VoiceFunction:
+    Type: AWS::Lambda::Function
+    Condition: HasVoice
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-dictation
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: handler.handler
+      MemorySize: 256
+      Timeout: 27
+      ReservedConcurrentExecutions: 8
+      Role: !GetAtt VoiceRole.Arn
+      Code:
+        S3Bucket: !Ref Research
+        S3Key: !Ref VoiceCodeKey
+        S3ObjectVersion: !Ref VoiceCodeVersion
+      Environment:
+        Variables:
+          VITA_ORIGIN: !Sub https://${Hostname}
+          VOICE_USAGE_TABLE: !Ref VoiceUsage
+          VOICE_MONTHLY_SECONDS: !Sub '${VoiceMonthlySeconds}'
+          VITA_LIVE_MONTHLY_SECONDS: !Sub '${VoiceLiveMonthlySeconds}'
+          OPENAI_VITA_IDENTITY_PROVIDER: !Ref VoiceLiveProvider
+          OPENAI_VITA_SERVICE_ACCOUNT: !Ref VoiceLiveAccount
+          VITA_LIVE_EXPIRY_QUEUE: !If [HasLiveVoice, !Ref VoiceExpiry, '']
+      Tags:
+        - Key: Project
+          Value: Vita
+  VoiceExpiryHandler:
+    Type: AWS::Lambda::EventSourceMapping
+    Condition: HasLiveVoice
+    Properties:
+      FunctionName: !Ref VoiceFunction
+      EventSourceArn: !GetAtt VoiceExpiry.Arn
+      BatchSize: 1
+      ScalingConfig:
+        MaximumConcurrency: 2
+  VoiceUrl:
+    Type: AWS::Lambda::Url
+    Condition: HasVoice
+    Properties:
+      TargetFunctionArn: !GetAtt VoiceFunction.Arn
+      AuthType: AWS_IAM
+  VoiceAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Condition: HasVoice
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-dictation
+        OriginAccessControlOriginType: lambda
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  VoiceRequest:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Condition: HasVoice
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub ${AWS::StackName}-dictation
+        CookiesConfig:
+          CookieBehavior: none
+        QueryStringsConfig:
+          QueryStringBehavior: none
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [Origin, Content-Type]
+  Cache:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub ${AWS::StackName}-assets
+        MinTTL: 0
+        DefaultTTL: 0
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+  Headers:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ${AWS::StackName}-browser-security
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: >-
+              default-src 'none'; script-src 'self' 'wasm-unsafe-eval';
+              style-src 'self'; img-src 'self' data: blob:;
+              font-src 'self' data: blob:; connect-src 'self' blob:;
+              worker-src 'self' blob:; base-uri 'none'; form-action 'none';
+              frame-ancestors 'none'
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: false
+            Override: true
+        CustomHeadersConfig:
+          Items:
+            - Header: Permissions-Policy
+              Value: camera=(), geolocation=(), microphone=(self), payment=()
+              Override: true
+  Edge:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Vita from NDC Inc.
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Aliases: !If [HasCertificate, [!Ref Hostname], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasCertificate
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: private-s3
+            DomainName: !GetAtt Site.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccess.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - !If
+            - HasVoice
+            - Id: dictation
+              DomainName: !Select [2, !Split ['/', !GetAtt VoiceUrl.FunctionUrl]]
+              OriginAccessControlId: !GetAtt VoiceAccess.Id
+              CustomOriginConfig:
+                OriginProtocolPolicy: https-only
+                OriginSSLProtocols: [TLSv1.2]
+            - !Ref AWS::NoValue
+        CacheBehaviors: !If
+          - HasVoice
+          - - PathPattern: /api/dictation*
+              TargetOriginId: dictation
+              ViewerProtocolPolicy: https-only
+              AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+              CachedMethods: [GET, HEAD]
+              CachePolicyId: !Ref Cache
+              OriginRequestPolicyId: !Ref VoiceRequest
+              ResponseHeadersPolicyId: !Ref Headers
+          - !Ref AWS::NoValue
+        DefaultCacheBehavior:
+          TargetOriginId: private-s3
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: !Ref Cache
+          ResponseHeadersPolicyId: !Ref Headers
+      Tags:
+        - Key: Project
+          Value: Vita
+  VoiceUrlAccess:
+    Type: AWS::Lambda::Permission
+    Condition: HasVoice
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref VoiceFunction
+      FunctionUrlAuthType: AWS_IAM
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Edge}
+  VoiceInvoke:
+    Type: AWS::Lambda::Permission
+    Condition: HasVoice
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref VoiceFunction
+      InvokedViaFunctionUrl: true
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Edge}
+  SiteAccess:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Site
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowOnlyVitaCloudFront
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${Site.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Edge}
+          - Sid: RequireHTTPS
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt Site.Arn
+              - !Sub ${Site.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+Outputs:
+  ResearchBucket:
+    Value: !Ref Research
+  SiteBucket:
+    Value: !Ref Site
+  DistributionId:
+    Value: !Ref Edge
+  StagingHostname:
+    Value: !GetAtt Edge.DomainName
+  VoiceUsageTable:
+    Condition: HasVoice
+    Value: !Ref VoiceUsage

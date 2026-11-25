@@ -1,0 +1,8 @@
+node_modules/
+dist/
+qa/results/
+qa/stage/
+qa/stage-*/
+qa/.venv/
+__pycache__/
+public/assets/

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Build, review, and download a résumé with Vita. Free to use and saved on your device.">
+  <title>Vita — Résumé builder</title>
+  <link rel="icon" href="./src/assets/favicon-ndc.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="./src/assets/favicon-ndc.svg">
+  <link rel="apple-touch-icon" href="./src/assets/apple-touch-icon-ndc.png">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-head">
+    <div class="site-head-inner">
+      <div class="site-identity">
+        <a class="ndc-brand" href="https://nestdigital.ca/" aria-label="NDC Inc. home">
+          <img src="./src/assets/ndc-horizontal-pine.svg" alt="" width="184" height="58">
+        </a>
+        <a class="wordmark" href="./" aria-label="Vita home">Vita</a>
+      </div>
+      <span class="privacy"><span aria-hidden="true">●</span> Your résumé files stay on this device</span>
+    </div>
+  </header>
+  <main id="main" class="shell">
+    <nav class="steps" aria-label="Résumé workflow">
+      <button type="button" data-step="start" aria-current="step">Start</button>
+      <button type="button" data-step="review">Review</button>
+      <button type="button" data-step="download">Download</button>
+    </nav>
+    <p id="status" class="status" role="status" hidden></p>
+    <section id="storage-conflict" class="storage-conflict" aria-label="Two open drafts" hidden>
+      <p>Another tab saved a different copy. Your edits are still here.</p>
+      <button id="keep-tab" type="button" class="secondary">Save this version</button>
+      <button id="use-tab" type="button" class="text-button">Use the other version</button>
+    </section>
+    <section id="scan-panel" class="scan-panel" aria-labelledby="scan-title" hidden>
+      <h2 id="scan-title" tabindex="-1">Read text from this scan</h2>
+      <p id="scan-hint">Vita can read printed English and French on this device.</p>
+      <div class="action-row"><button id="read-scan" class="primary" type="button">Read scan</button>
+      <button id="cancel-scan" class="text-button" type="button">Cancel</button></div>
+      <p id="scan-status" class="field-hint" role="status"></p>
+    </section>
+    <section id="start-screen" class="screen" aria-labelledby="start-heading">
+      <div class="intro">
+        <h1 id="start-heading" tabindex="-1">Build your résumé</h1>
+        <p>Bring a file or start with one experience. Get a résumé you can send or edit in Word.</p>
+      </div>
+      <p id="continue-wrap" hidden><button class="primary" type="button" data-go-review>Continue my draft <span aria-hidden="true">→</span></button></p>
+      <div class="start-grid">
+        <section class="choice import-choice" aria-labelledby="import-heading">
+          <h2 id="import-heading">Bring your résumé</h2>
+          <label id="dropzone" class="dropzone">
+            <input id="import-file" type="file" multiple accept=".vita,.json,.pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg,image/webp">
+            <span>Choose a file<span class="drop-instruction"> or drop it here</span></span>
+            <small>PDF, Word, text, photo or Vita backup</small>
+          </label>
+          <div class="text-actions">
+            <button id="paste-start" type="button" class="text-button" aria-controls="paste-panel" aria-expanded="false">Paste or dictate</button>
+            <button id="linkedin-start" type="button" class="text-button" aria-controls="linkedin-panel" aria-expanded="false">Use LinkedIn</button>
+            <label class="file-link">
+              <input id="support-file-start" data-support-upload type="file" multiple accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg,image/webp">
+              <span>Add supporting documents</span>
+            </label>
+          </div>
+        </section>
+        <section class="choice fresh-choice" aria-labelledby="fresh-heading">
+          <h2 id="fresh-heading">Start from scratch</h2>
+          <p>Tell us about one job, class or project. Vita will ask for the details that matter.</p>
+          <button type="button" class="primary" id="start-fresh" aria-controls="guide-panel" aria-expanded="false">Start a résumé <span aria-hidden="true">→</span></button>
+        </section>
+      </div>
+      <section id="file-set" class="surface auxiliary" aria-labelledby="file-set-title" hidden>
+        <h2 id="file-set-title" tabindex="-1">Which file is your résumé?</h2>
+        <label for="primary-file">Choose the résumé to start with. The other files can add supporting details.</label>
+        <select id="primary-file"></select>
+        <div class="action-row"><button id="file-set-use" type="button" class="primary">Continue</button>
+        <button id="file-set-cancel" type="button" class="text-button">Cancel</button></div>
+      </section>
+      <form id="linkedin-panel" class="surface auxiliary" hidden>
+        <h2>Add your LinkedIn profile</h2>
+        <label for="linkedin-url">LinkedIn profile link</label>
+        <input id="linkedin-url" type="text" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" maxlength="1000" required aria-describedby="linkedin-hint linkedin-error" placeholder="linkedin.com/in/your-name">
+        <p id="linkedin-hint" class="field-hint">Add the link to your résumé.</p>
+        <p id="linkedin-error" class="field-hint" role="alert" hidden></p>
+        <button id="linkedin-submit" class="primary" type="submit">Add profile link</button>
+        <details class="linkedin">
+          <summary>Bring in your profile details</summary>
+          <p>On a computer, open your LinkedIn profile and choose <strong>More</strong> or <strong>Resources</strong>, then <strong>Save to PDF</strong>. Choose that file above. You can also paste your profile text. <a href="https://www.linkedin.com/help/linkedin/answer/a541960" target="_blank" rel="noopener noreferrer">LinkedIn Help</a></p>
+        </details>
+      </form>
+      <form id="paste-panel" class="surface auxiliary" hidden>
+        <h2>Add résumé text</h2>
+        <label for="source-text">Résumé or profile text</label>
+        <textarea id="source-text" rows="8" maxlength="150000" required></textarea>
+        <button id="paste-submit" class="primary" type="submit">Review text</button>
+      </form>
+      <form id="guide-panel" class="surface auxiliary" hidden>
+        <h2>Start with one experience</h2>
+        <div class="fields">
+          <label for="guide-name">Name <span class="optional">Optional</span><input id="guide-name" maxlength="140" autocomplete="name"></label>
+          <label for="guide-section">Where did you gain experience?
+            <select id="guide-section">
+              <option value="Experience">Work or self-employment</option>
+              <option value="Education">School or training</option>
+              <option value="Projects">A project</option>
+              <option value="Volunteering">Volunteering or community work</option>
+              <option value="Additional">Caregiving or another responsibility</option>
+            </select>
+          </label>
+          <label for="guide-title" class="full">Role, course, or project name <span class="optional">Optional</span><input id="guide-title" maxlength="240"></label>
+          <label for="guide-help" class="full">What did you personally do?
+            <span id="guide-help-hint" class="field-hint">Think of something you prepared, checked, organized, or helped someone do.</span>
+            <textarea id="guide-help" rows="4" maxlength="5000"></textarea>
+          </label>
+          <label id="guide-followup" for="guide-context" class="full" hidden><span id="guide-question"></span> <span class="optional">Optional</span>
+            <span class="field-hint">Add one detail in your own words, if you know it.</span>
+            <textarea id="guide-context" rows="3" maxlength="5000"></textarea>
+          </label>
+        </div>
+        <div class="action-row">
+          <button class="primary" id="guide-submit" type="submit">Create draft</button>
+          <button class="text-button" id="blank-start" type="button">Skip to editor</button>
+        </div>
+      </form>
+      <div class="restore-line">
+        <label class="file-link">
+          <input type="file" id="draft-file" accept=".json,.vita,application/json">
+          <span>Open a Vita backup</span>
+        </label>
+        <span>Free to use. No account.</span>
+      </div>
+    </section>
+    <section id="review-screen" class="screen" aria-labelledby="review-heading" hidden>
+      <div class="page-heading">
+        <div><h1 id="review-heading" tabindex="-1">Edit your résumé</h1><p id="review-hint">Select an entry to edit it.</p></div>
+        <button type="button" class="primary" data-go-download>Preview &amp; download <span aria-hidden="true">→</span></button>
+      </div>
+      <section id="import-review" class="import-workspace" aria-labelledby="import-review-heading" hidden>
+        <div class="import-paper">
+          <div id="candidate-identity"></div>
+          <div id="candidate-preview"></div>
+        </div>
+        <aside class="import-decision">
+          <h2 id="import-review-heading" tabindex="-1">Use this résumé?</h2>
+          <p id="import-info"></p>
+          <div class="import-actions">
+            <button class="primary" id="apply-import" type="button">Use this résumé <span aria-hidden="true">→</span></button>
+            <button class="text-button" id="cancel-import" type="button">Cancel import</button>
+          </div>
+          <div id="import-notes"></div>
+          <div id="import-scan"></div>
+        </aside>
+      </section>
+      <section id="support-review" class="surface import-review" aria-labelledby="support-heading" hidden>
+        <h2 id="support-heading" tabindex="-1">Review supporting documents</h2>
+        <p>Choose the details to add to your current résumé.</p>
+        <p id="support-progress" role="status" class="field-hint"></p>
+        <div id="support-files"></div>
+        <div class="action-row">
+          <button class="primary" id="apply-support" type="button" disabled>Add selected entries</button>
+          <button class="secondary" id="cancel-support" type="button">Discard review</button>
+        </div>
+      </section>
+      <div class="editor-layout" id="editor-layout">
+        <section class="surface editor" aria-label="Résumé editor">
+          <div class="section-head"><h2>Contact and summary</h2><button class="text-button" id="undo" type="button" disabled>Undo</button></div>
+          <div class="fields" id="profile">
+            <label for="name">Name<input id="name" data-profile="name" autocomplete="name" maxlength="140"></label>
+            <label for="email">Email<input id="email" data-profile="email" inputmode="email" autocomplete="email" maxlength="240"></label>
+            <label for="phone">Phone<input id="phone" data-profile="phone" inputmode="tel" autocomplete="tel" maxlength="100"></label>
+            <label for="location">Location<input id="location" data-profile="location" maxlength="240"></label>
+            <label for="website" class="full">Website or LinkedIn<input id="website" data-profile="website" inputmode="url" autocomplete="url" maxlength="400"></label>
+            <label for="summary" class="full">Summary <span class="optional">Optional</span><textarea id="summary" data-profile="summary" rows="3" maxlength="150000"></textarea></label>
+          </div>
+          <hr>
+          <div class="section-head"><h2>Résumé entries</h2></div>
+          <div id="entries"></div>
+          <button class="secondary" type="button" id="add-entry">＋ Add an entry</button>
+        </section>
+        <aside class="side-panel">
+          <section class="surface" aria-labelledby="notes-heading">
+            <h2 id="notes-heading">Before you send</h2>
+            <div id="resume-checks"></div>
+            <details id="source-disclosure"><summary>See original text</summary>
+            <div id="source-notes"></div></details>
+            <details>
+              <summary>Compare a job posting <span class="optional">Optional</span></summary>
+              <label class="field-hint" for="job-posting">Paste a posting to check for wording the résumé already uses.</label>
+              <textarea id="job-posting" rows="5" maxlength="20000"></textarea>
+              <button class="secondary compact" id="compare-job" type="button">Compare wording</button>
+              <div id="job-result" aria-live="polite"></div>
+            </details>
+          </section>
+          <div class="draft-options">
+            <label class="file-link">
+              <input id="support-file-review" data-support-upload type="file" multiple accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg,image/webp">
+              <span>Add supporting documents</span>
+            </label>
+            <label><input type="checkbox" id="remember-draft" checked> Save draft on this device</label>
+            <p id="save-state" class="field-hint" aria-live="polite"></p>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <section id="download-screen" class="screen" aria-labelledby="download-heading" hidden>
+      <div class="page-heading">
+        <div><h1 id="download-heading" tabindex="-1">Download your résumé</h1><p>Choose the file you need.</p></div>
+        <button type="button" class="secondary" data-go-review>Return to review</button>
+      </div>
+      <div class="downloads">
+        <div class="format-option"><h2>Ready to send</h2><p>Keeps this layout when you apply.</p>
+          <button class="primary" id="download-pdf" type="button" disabled>Download PDF</button></div>
+        <div class="format-option"><h2>Want to edit?</h2><p>Opens in Word, Pages or Google Docs.</p>
+          <button class="secondary" id="download-docx" type="button" disabled>Download editable Word file</button></div>
+      </div>
+      <details class="transfer-options"><summary>Continue in Vita on another device</summary>
+        <p>Download a Vita backup, then use <strong>Choose a file</strong> on the other device to pick up where you left off.</p>
+        <button class="text-button" id="save-draft" type="button">Download Vita backup (.vita)</button>
+      </details>
+      <h2 class="preview-heading">PDF preview</h2>
+      <div class="preview-tools action-row">
+        <p id="pdf-status" role="status" class="field-hint"></p>
+        <button class="text-button" id="pdf-zoom" type="button" aria-controls="pdf-pages" hidden>Zoom in</button>
+      </div>
+      <p id="pdf-zoom-note" class="field-hint" hidden>Scroll sideways to read across the page.</p>
+      <div id="pdf-pages" aria-label="PDF preview pages"></div>
+      <nav id="pdf-page-nav" class="action-row" aria-label="PDF preview navigation" hidden>
+        <button id="pdf-previous" class="secondary" type="button">Previous pages</button>
+        <button id="pdf-next" class="secondary" type="button">Next pages</button>
+      </nav>
+    </section>
+  </main>
+  <template id="voice-controls">
+    <div class="voice-tools" data-phase="idle">
+      <div class="voice-bar">
+        <button data-voice-mic class="voice-mic" type="button">
+          <span class="voice-icon" aria-hidden="true"></span>
+          <span data-voice-label>Dictate</span>
+        </button>
+        <canvas data-voice-meter width="324" height="52" aria-hidden="true" hidden></canvas>
+        <span data-voice-clock aria-hidden="true" hidden>0:00</span>
+        <button data-voice-cancel class="text-button" type="button" hidden>Cancel recording</button>
+        <button data-voice-memo class="text-button" type="button">Use a voice memo</button>
+        <span class="voice-disclosure">Dictation sends audio to OpenAI or AWS.</span>
+        <input data-voice-file type="file" hidden accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.aac,.mp4">
+      </div>
+      <p class="voice-caption" data-voice-caption hidden></p>
+      <div class="voice-feedback">
+        <p data-voice-status role="status" aria-atomic="true"></p>
+        <button data-voice-retry class="text-button" type="button" hidden>Try again</button>
+        <button data-voice-undo class="text-button" type="button" hidden>Undo dictation</button>
+      </div>
+      <label data-voice-recovery hidden>Dictated words
+        <textarea data-voice-words rows="3" readonly></textarea>
+      </label>
+    </div>
+  </template>
+  <footer class="site-foot">
+    <img src="./src/assets/ndc-horizontal-pine.svg" alt="NDC Inc." width="105" height="34">
+    <p><a href="/source.zip">Source code</a></p>
+  </footer>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

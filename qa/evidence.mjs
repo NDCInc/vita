@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {postingEvidence} from '../src/evidence.js';
+import {nextQuestion} from '../src/review.js';
+const draft={summary:'I have no experience in audit.',entries:[{section:'Experience',title:'Accounting Clerk',details:'Reconciled supplier invoices weekly.\nPréparé les états financiers.'}]};
+const result=postingEvidence('Audit, supplier invoices, reconciliations and financial reporting.',draft);
+assert.deepEqual(result.matched.map(r=>r.label),['Reconciliations','Accounts payable','Financial reporting']);
+assert.equal(result.matched[0].text,draft.entries[0].details.split('\n')[0]);
+assert.equal(result.matched[2].text,'Préparé les états financiers.');
+assert.match(result.question,/audit/iu);
+assert.equal(result.matched.every(x=>x.index===0),true);
+assert.deepEqual(postingEvidence('microbiology',{summary:'',entries:[]}),{matched:[],question:''});
+assert.match(nextQuestion('Built a spreadsheet','Default'),/tool/);
+assert.match(nextQuestion('Reconciled invoices','Default'),/how often/);
+assert.match(nextQuestion('Built a forecast','Default'),/decision/);
+assert.match(nextQuestion('Reviewed an audit','Default'),/check/);
+assert.equal(nextQuestion('Helped customers','Default'),'Default');
+console.log('11 evidence and follow-up assertions passed');

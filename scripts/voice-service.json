@@ -1,0 +1,15 @@
+{
+  "language": "en",
+  "primary": {
+    "provider": "OpenAI",
+    "model": "gpt-live-transcribe",
+    "endpoint": "/api/dictation/live",
+    "source": "https://developers.openai.com/api/docs/guides/realtime-transcription"
+  },
+  "fallback": {
+    "provider": "Amazon Transcribe",
+    "operation": "TranscribeAudio",
+    "endpoint": "/api/dictation",
+    "source": "https://aws.amazon.com/about-aws/whats-new/2026/11/amazon-transcribe-sync-api/"
+  }
+}
